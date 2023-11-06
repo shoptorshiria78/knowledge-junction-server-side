@@ -57,6 +57,18 @@ async function run() {
     console.log(error)
    }
   })
+  // post Assignment data
+
+  app.post('/api/v1/createAssignment', async(req, res)=>{
+    try{
+      const newAssignment = req.body;
+      const result = await allAssignmentCollection.insertOne(newAssignment);
+      res.send(result);
+    }
+    catch(error){
+    
+    }
+  })
 
 
     await client.db("admin").command({ ping: 1 });
