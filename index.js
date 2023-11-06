@@ -30,14 +30,33 @@ async function run() {
     
     // await client.connect();
    const featuresCollection = client.db("KnowledgeJunction").collection("features");
+   const allAssignmentCollection = client.db("KnowledgeJunction").collection("AllAssignment");
+
   //  get features data
-   app.get('/features', async(req,res)=>{
+   app.get('/api/v1/features', async(req,res)=>{
+     try{
       const cursor =  featuresCollection.find();
       const result = await cursor.toArray();
-      console.log(result);
+      
       res.send(result);
+     }
+     catch(error){
+      console.log(error);
+     }
    })
 
+// get allAssignment data
+  app.get('/api/v1/all/getAllAssignments', async(req,res)=>{
+   try{
+    const cursor  = allAssignmentCollection.find()
+    const result = await cursor.toArray();
+    console.log(result);
+    res.send(result);
+   }
+   catch(error){
+    console.log(error)
+   }
+  })
 
 
     await client.db("admin").command({ ping: 1 });
