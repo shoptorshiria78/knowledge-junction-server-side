@@ -1,7 +1,6 @@
 const express = require('express');
 const cors = require('cors');
 require("dotenv").config();
-const multer = require('multer');
 const app = express();
 const port = process.env.PORT || 5000;
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
@@ -12,7 +11,7 @@ const corsConfig ={
   methods:["GET","POST","PUT","PATCH","DELETE","OPTIONS"]
 }
 app.use(cors(corsConfig));
-const upload = multer({ dest: '/api/v1/submittedAssignment' })
+
 
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.7bvfsss.mongodb.net/?retryWrites=true&w=majority`;
@@ -73,10 +72,15 @@ async function run() {
        console.log(error)
     }
   })
+
   // get all submitted assignment Data
   app.get('/api/v1/allSubmittedAssignment', async(req, res)=>{
     try{
-      const cursor  = allSubmittedCollection.find()
+      let query={};
+      if(req.query?.status){
+        query ={ status: req.query.status };
+      }
+      const cursor  = allSubmittedCollection.find(query)
       const result = await cursor.toArray();
       console.log(result);
       res.send(result);
@@ -98,9 +102,9 @@ async function run() {
     }
   })
   //  create all submitted data collections
-  app.post('/api/v1/submittedAssignment', upload.single('file'), async(req, res, next)=>{
+  app.post('/api/v1/submittedAssignment', async(req, res)=>{
     try{
-      const fileName = req.file;
+      
       const newSubmission = req.body;
       const result = await allSubmittedCollection.insertOne(newSubmission);
       res.send(result)
