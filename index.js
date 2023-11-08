@@ -259,16 +259,26 @@ async function run() {
 
       }
     })
+    // get deleted data
+    app.get('/api/v1/deleteAssignment/:id', async(req, res)=>{
+      try{
+        const id = req.params.id;
+        const filter = { _id: new ObjectId(id) };
+        const result = await allAssignmentCollection.findOne(filter)
+        console.log(result);
+        res.send(result);
+
+      }catch(error){
+
+      }
+    })
 
     //  delete Single Assignment
-    app.delete('/api/v1/deleteAssignment/:id', jwtVerifyToken, async (req, res) => {
+    app.delete('/api/v1/deleteAssignment/:id', async (req, res) => {
       try {
-        if (req.user.email !== req.query.uEmail) {
-          return res.status(403).send({ message: "ForbiddenAccess" })
-        }
         const id = req.params.id;
         const query = { _id: new ObjectId(id) };
-        const result = await myCartCollection.deleteOne(query);
+        const result = await allAssignmentCollection.deleteOne(query);
         res.send(result);
       }
       catch (error) {
