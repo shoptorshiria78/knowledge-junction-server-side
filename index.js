@@ -46,11 +46,12 @@ async function run() {
       }
     })
 
-    // get allAssignment data
-    app.get('/api/v1/all/getAllAssignments', async (req, res) => {
+
+    // get allAssignment  data
+    app.get('/api/v1/all/getAllAssignments/', async (req, res) => {
       try {
         const page = parseInt(req.query.page);
-        const size = parseInt(req.query.size)
+        const size = parseInt(req.query.size);     
         const cursor = allAssignmentCollection.find().skip(page*size).limit(size);
         const result = await cursor.toArray();
         console.log(result);
@@ -60,7 +61,25 @@ async function run() {
         console.log(error)
       }
     })
-    // get assignment cout
+
+    // get allAssignment difficulty data
+    app.get('/api/v1/all/getAllAssignments/:difficulty', async (req, res) => {
+      try {
+        const page = parseInt(req.query.page);
+        const size = parseInt(req.query.size); 
+        const query = {difficulty: req.params.difficulty}    
+        const cursor = allAssignmentCollection.find(query).skip(page*size).limit(size);
+        const result = await cursor.toArray();
+        console.log(result);
+        res.send(result);
+      }
+      catch (error) {
+        console.log(error)
+      }
+    })
+
+  
+    // get assignment count
     app.get('/api/v1/allAssignmentCount', async(req, res)=>{
       const count = await allAssignmentCollection.estimatedDocumentCount();
       res.send({count})
