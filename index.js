@@ -9,13 +9,21 @@ const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 app.use(express.json());
 app.use(cookieParser());
 const corsConfig = {
-  origin: [
-    'http://localhost:5173'
+  origin:[
+    'http://localhost:5173/',
+    'https://beamish-cascaron-dfdaff.netlify.app/'
   ],
   credentials: true,
+  sameSite:'none',
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
 }
 app.use(cors(corsConfig));
+
+// app.use(function (req, res, next) {
+//   res.header("Access-Control-Allow-Origin", "*");
+//   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+//   next();
+// })
 
 
 
@@ -51,7 +59,7 @@ const jwtVerifyToken = (req, res, next) => {
 async function run() {
   try {
 
-    // await client.connect();
+    
     const featuresCollection = client.db("KnowledgeJunction").collection("features");
     const allAssignmentCollection = client.db("KnowledgeJunction").collection("AllAssignment");
     const allSubmittedCollection = client.db("KnowledgeJunction").collection("allSubmission");
@@ -62,8 +70,9 @@ async function run() {
       const token = jwt.sign(email, process.env.SECRET_TOKEN, { expiresIn: "1h" })
       res.cookie('token', token, {
         httpOnly: true,
-        secure: true,
-        sameSite: 'none'
+        secure: process.env.NODE_ENV === 'production',
+        sameSite:  process.env.NODE_ENV === 'production'?'none':'strict',
+        
       }).send({ success: true })
     })
 
@@ -71,7 +80,7 @@ async function run() {
     app.post("/api/v1/user/logOut", async (req, res) => {
       const user = req.body;
       console.log(user)
-      res.clearCookie('token', { maxAge: 0 }).send({ success: "true" })
+      res.clearCookie('token', { maxAge:  60*60*1000, secure:true, sameSite:'none' }).send({ success: "true" })
     })
 
     //  get features data
@@ -157,11 +166,9 @@ async function run() {
       }
     })
     // get my submitted assignment data
-    app.get('/api/v1/mySubmittedAssignment', jwtVerifyToken, async (req, res) => {
+    app.get('/api/v1/mySubmittedAssignment', async (req, res) => {
       try {
-        if (req.user.email !== req.query.uEmail) {
-          return res.status(403).send({ message: "ForbiddenAccess" })
-        }
+        
         let query = {};
         if (req.query?.uEmail) {
           query = { uEmail: req.query.uEmail };
@@ -292,7 +299,7 @@ async function run() {
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
-    // await client.close();
+    
   }
 }
 run().catch(console.dir);
