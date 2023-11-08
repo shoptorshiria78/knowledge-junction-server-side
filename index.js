@@ -1,12 +1,17 @@
 const express = require('express');
 const cors = require('cors');
 require("dotenv").config();
+const jwt = require("jsonwebtoken")
+const cookieParser = require("cookie-parser")
 const app = express();
 const port = process.env.PORT || 5000;
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 app.use(express.json());
+app.use(cookieParser());
 const corsConfig = {
-  origin: "*",
+  origin: [
+    'http://localhost:5173'
+  ],
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
 }
@@ -25,6 +30,24 @@ const client = new MongoClient(uri, {
   }
 });
 
+// jwt middleware
+
+const jwtVerifyToken = (req, res, next) => {
+  const token = req?.cookies?.token;
+  if (!token) {
+    return res.status(401).send({ message: " Unauthorized Access" })
+  }
+  jwt.verify(token, process.env.SECRET_TOKEN, (err, decoded) => {
+    if (err) {
+      return res.status(401).send({ message: " Unauthorized Access" })
+    }
+
+    req.user = decoded;
+    next()
+  })
+
+}
+
 async function run() {
   try {
 
@@ -32,6 +55,24 @@ async function run() {
     const featuresCollection = client.db("KnowledgeJunction").collection("features");
     const allAssignmentCollection = client.db("KnowledgeJunction").collection("AllAssignment");
     const allSubmittedCollection = client.db("KnowledgeJunction").collection("allSubmission");
+
+    // authentication data
+    app.post("/api/v1/user/jwt", async (req, res) => {
+      const email = req.body;
+      const token = jwt.sign(email, process.env.SECRET_TOKEN, { expiresIn: "1h" })
+      res.cookie('token', token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none'
+      }).send({ success: true })
+    })
+
+    // logOut Data
+    app.post("/api/v1/user/logOut", async (req, res) => {
+      const user = req.body;
+      console.log(user)
+      res.clearCookie('token', { maxAge: 0 }).send({ success: "true" })
+    })
 
     //  get features data
     app.get('/api/v1/features', async (req, res) => {
@@ -51,10 +92,10 @@ async function run() {
     app.get('/api/v1/all/getAllAssignments/', async (req, res) => {
       try {
         const page = parseInt(req.query.page);
-        const size = parseInt(req.query.size);     
-        const cursor = allAssignmentCollection.find().skip(page*size).limit(size);
+        const size = parseInt(req.query.size);
+        const cursor = allAssignmentCollection.find().skip(page * size).limit(size);
         const result = await cursor.toArray();
-        console.log(result);
+        // console.log(result);
         res.send(result);
       }
       catch (error) {
@@ -66,9 +107,9 @@ async function run() {
     app.get('/api/v1/all/getAllAssignments/:difficulty', async (req, res) => {
       try {
         const page = parseInt(req.query.page);
-        const size = parseInt(req.query.size); 
-        const query = {difficulty: req.params.difficulty}    
-        const cursor = allAssignmentCollection.find(query).skip(page*size).limit(size);
+        const size = parseInt(req.query.size);
+        const query = { difficulty: req.params.difficulty }
+        const cursor = allAssignmentCollection.find(query).skip(page * size).limit(size);
         const result = await cursor.toArray();
         console.log(result);
         res.send(result);
@@ -78,11 +119,11 @@ async function run() {
       }
     })
 
-  
+
     // get assignment count
-    app.get('/api/v1/allAssignmentCount', async(req, res)=>{
+    app.get('/api/v1/allAssignmentCount', async (req, res) => {
       const count = await allAssignmentCollection.estimatedDocumentCount();
-      res.send({count})
+      res.send({ count })
     })
 
     // get single assignment Data
@@ -108,7 +149,7 @@ async function run() {
         }
         const cursor = allSubmittedCollection.find(query)
         const result = await cursor.toArray();
-        console.log(result);
+        // console.log(result);
         res.send(result);
 
       } catch (error) {
@@ -116,8 +157,11 @@ async function run() {
       }
     })
     // get my submitted assignment data
-    app.get('/api/v1/mySubmittedAssignment', async(req, res)=>{
+    app.get('/api/v1/mySubmittedAssignment', jwtVerifyToken, async (req, res) => {
       try {
+        if (req.user.email !== req.query.uEmail) {
+          return res.status(403).send({ message: "ForbiddenAccess" })
+        }
         let query = {};
         if (req.query?.uEmail) {
           query = { uEmail: req.query.uEmail };
@@ -157,8 +201,11 @@ async function run() {
     })
 
     // update assignment data
-    app.put('/api/v1/updateAssignment', async (req, res) => {
+    app.put('/api/v1/updateAssignment', jwtVerifyToken, async (req, res) => {
       try {
+        if (req.user.email !== req.query.uEmail) {
+          return res.status(403).send({ message: "ForbiddenAccess" })
+        }
         const assignmentData = req.body;
         const id = req.params.id;
         const filter = { _id: new ObjectId(id) };
@@ -183,27 +230,28 @@ async function run() {
       }
     })
     // update submitted assignment status
-    app.patch('/api/v1/updateSubmittedAssignmentStatus', async (req, res) => {
+    app.put('/api/v1/updateSubmittedAssignmentStatus/:id', async (req, res) => {
       try {
         const submittedData = req.body;
         const id = req.params.id;
-        const filter = { _id: id };
+        const options = { upsert: true };
+        const filter = { _id: new ObjectId(id) };
         const updateSubmittedAssignment = {
-          $set: { 
+          $set: {
             oMarks: submittedData.oMarks,
-            feedback:submittedData.feedback,
-            status:submittedData.status,
-            inputFile:submittedData.inputFile,
-            inputText:submittedData.inputText,
-            uEmail:submittedData.uEmail,
-            image:submittedData.image,
-            title:submittedData.title,
-            marks:submittedData.marks,
-            name:submittedData.name
+            feedback: submittedData.feedback,
+            status: submittedData.status,
+            inputFile: submittedData.inputFile,
+            inputText: submittedData.inputText,
+            uEmail: submittedData.uEmail,
+            image: submittedData.image,
+            title: submittedData.title,
+            marks: submittedData.marks,
+            name: submittedData.name
           }
         }
 
-        const result = await allSubmittedCollection.updateOne(filter, updateSubmittedAssignment)
+        const result = await allSubmittedCollection.updateOne(filter, updateSubmittedAssignment, options)
         res.send(result);
 
       } catch (error) {
@@ -212,7 +260,22 @@ async function run() {
       }
     })
 
+    //  delete Single Assignment
+    app.delete('/api/v1/deleteAssignment/:id', jwtVerifyToken, async (req, res) => {
+      try {
+        if (req.user.email !== req.query.uEmail) {
+          return res.status(403).send({ message: "ForbiddenAccess" })
+        }
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await myCartCollection.deleteOne(query);
+        res.send(result);
+      }
+      catch (error) {
+        console.log(error)
 
+      }
+    })
 
 
     await client.db("admin").command({ ping: 1 });
