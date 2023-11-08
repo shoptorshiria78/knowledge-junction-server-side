@@ -49,7 +49,9 @@ async function run() {
     // get allAssignment data
     app.get('/api/v1/all/getAllAssignments', async (req, res) => {
       try {
-        const cursor = allAssignmentCollection.find()
+        const page = parseInt(req.query.page);
+        const size = parseInt(req.query.size)
+        const cursor = allAssignmentCollection.find().skip(page*size).limit(size);
         const result = await cursor.toArray();
         console.log(result);
         res.send(result);
@@ -57,6 +59,11 @@ async function run() {
       catch (error) {
         console.log(error)
       }
+    })
+    // get assignment cout
+    app.get('/api/v1/allAssignmentCount', async(req, res)=>{
+      const count = await allAssignmentCollection.estimatedDocumentCount();
+      res.send({count})
     })
 
     // get single assignment Data
