@@ -12,7 +12,9 @@ app.use(cookieParser());
 app.use(cors({
    origin: [
     'https://beamish-cascaron-dfdaff.netlify.app',
-    'http://localhost:5173'
+    'http://localhost:5173',
+    'https://drive.google.com/file/d',
+    'https://accounts.google.com/ServiceLogin?service=wise&passive=1209600&osid=1&continue=https://drive.google.com/file/d/1mFTYgSkRhrmIn4n6_eheQ7nCXzdnM7Vy/view?usp%3Ddrive_link&followup=https://drive.google.com/file/d'
    ],
    credentials:true
 }));
