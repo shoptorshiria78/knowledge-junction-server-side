@@ -8,24 +8,14 @@ const port = process.env.PORT || 5000;
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 app.use(express.json());
 app.use(cookieParser());
-const corsConfig = {
-  origin:[
-    'http://localhost:5173/',
-    'https://beamish-cascaron-dfdaff.netlify.app/'
-  ],
-  credentials: true,
-  sameSite:'none',
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
-}
-app.use(cors(corsConfig));
 
-// app.use(function (req, res, next) {
-//   res.header("Access-Control-Allow-Origin", "*");
-//   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-//   next();
-// })
-
-
+app.use(cors({
+   origin: [
+    'https://beamish-cascaron-dfdaff.netlify.app',
+    'http://localhost:5173'
+   ],
+   credentials:true
+}));
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.7bvfsss.mongodb.net/?retryWrites=true&w=majority`;
 
@@ -166,8 +156,11 @@ async function run() {
       }
     })
     // get my submitted assignment data
-    app.get('/api/v1/mySubmittedAssignment', async (req, res) => {
+    app.get('/api/v1/mySubmittedAssignment',jwtVerifyToken, async (req, res) => {
       try {
+        if(req.user.email !== req.query.uEmail){
+          return res.status(403).send({message: "Forbidden Access"})
+        }
         
         let query = {};
         if (req.query?.uEmail) {
@@ -208,7 +201,7 @@ async function run() {
     })
 
     // update assignment data
-    app.put('/api/v1/updateAssignment', jwtVerifyToken, async (req, res) => {
+    app.put('/api/v1/updateAssignment/:id', jwtVerifyToken, async (req, res) => {
       try {
         if (req.user.email !== req.query.uEmail) {
           return res.status(403).send({ message: "ForbiddenAccess" })
@@ -219,12 +212,13 @@ async function run() {
         const options = { upsert: true };
         const updateAssignment = {
           $set: {
+            img: assignmentData.img,
             title: assignmentData.title,
             description: assignmentData.description,
             marks: assignmentData.marks,
-            img: assignmentData.img,
-            dueDate: assignmentData.dueDate,
             difficulty: assignmentData.difficulty,
+            dueDate: assignmentData.dueDate,
+            uEmail:assignmentData.uEmail
           }
         }
 
@@ -281,8 +275,11 @@ async function run() {
     })
 
     //  delete Single Assignment
-    app.delete('/api/v1/deleteAssignment/:id', async (req, res) => {
+    app.delete('/api/v1/deleteAssignment/:id',jwtVerifyToken, async (req, res) => {
       try {
+        if(req.user.email !== req.query.uEmail){
+          return res.status(403).send({message: "Forbidden Access"})
+        }
         const id = req.params.id;
         const query = { _id: new ObjectId(id) };
         const result = await allAssignmentCollection.deleteOne(query);
