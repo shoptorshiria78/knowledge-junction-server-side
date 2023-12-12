@@ -12,7 +12,7 @@ app.use(cookieParser());
 app.use(cors({
    origin: [
     'https://beamish-cascaron-dfdaff.netlify.app',
-    'http://localhost:5173',
+    'http://localhost:5174',
     'https://drive.google.com/file/d',
     'https://accounts.google.com/ServiceLogin?service=wise&passive=1209600&osid=1&continue=https://drive.google.com/file/d/1mFTYgSkRhrmIn4n6_eheQ7nCXzdnM7Vy/view?usp%3Ddrive_link&followup=https://drive.google.com/file/d'
    ],
@@ -158,11 +158,12 @@ async function run() {
       }
     })
     // get my submitted assignment data
-    app.get('/api/v1/mySubmittedAssignment',jwtVerifyToken, async (req, res) => {
+    app.get('/api/v1/mySubmittedAssignment', async (req, res) => {
       try {
-        if(req.user.email !== req.query.uEmail){
-          return res.status(403).send({message: "Forbidden Access"})
-        }
+        // console.log(req.user.email)
+        // if(req.user.email !== req.query.uEmail){
+        //   return res.status(403).send({message: "Forbidden Access"})
+        // }
         
         let query = {};
         if (req.query?.uEmail) {
