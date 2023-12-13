@@ -12,7 +12,7 @@ app.use(cookieParser());
 app.use(cors({
    origin: [
     'https://beamish-cascaron-dfdaff.netlify.app',
-    'http://localhost:5174',
+    'http://localhost:5173',
     'https://drive.google.com/file/d',
     'https://accounts.google.com/ServiceLogin?service=wise&passive=1209600&osid=1&continue=https://drive.google.com/file/d/1mFTYgSkRhrmIn4n6_eheQ7nCXzdnM7Vy/view?usp%3Ddrive_link&followup=https://drive.google.com/file/d'
    ],
@@ -55,6 +55,7 @@ async function run() {
     const featuresCollection = client.db("KnowledgeJunction").collection("features");
     const allAssignmentCollection = client.db("KnowledgeJunction").collection("AllAssignment");
     const allSubmittedCollection = client.db("KnowledgeJunction").collection("allSubmission");
+    const allQuizCollection = client.db("KnowledgeJunction").collection("allQuiz");
 
     // authentication data
     app.post("/api/v1/user/jwt", async (req, res) => {
@@ -176,6 +177,18 @@ async function run() {
 
       } catch (error) {
         console.log(error)
+      }
+    })
+    // get all quiz
+    app.get('/api/v1/getQuiz', async(req, res)=>{
+      try {
+        const cursor = allQuizCollection.find();
+        const result = await cursor.toArray();
+
+        res.send(result);
+      }
+      catch (error) {
+        console.log(error);
       }
     })
 
